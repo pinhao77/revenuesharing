@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🔥 火舞分帳系統</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#6a00ff">
+
+<style>
+body { margin:0; overflow:hidden; font-family:sans-serif; background:black; }
+canvas { position:fixed; top:0; left:0; z-index:0; }
+.container {
+  position:relative; z-index:1; max-width:400px; margin:20px auto;
+  padding:20px; border-radius:20px;
+  background:rgba(255,255,255,0.08); backdrop-filter:blur(20px);
+  color:white;
+}
+input,button { width:100%; padding:10px; margin:8px 0; border-radius:10px; border:none; }
+input { background:rgba(255,255,255,0.15); color:white; }
+button { background:linear-gradient(45deg,#6a00ff,#b300ff); color:white; }
+.result { margin-top:20px; }
+</style>
+</head>
+
+<body>
+<canvas id="fire"></canvas>
+
+<div class="container">
+  <h2>🔥 火舞分帳系統</h2>
+
+  <input id="total" placeholder="今日總收入" type="number">
+  <input id="car" placeholder="車油錢" type="number">
+  <input id="keroseneCount" placeholder="煤油桶數" type="number">
+  <input id="cleanCount" placeholder="去漬油數量" type="number">
+  <input id="people" placeholder="表演者人數" type="number">
+
+  <button onclick="calculate()">🔥 計算分帳</button>
+  <div id="output" class="result"></div>
+</div>
+
+<script>
+const canvas=document.getElementById("fire");
+const ctx=canvas.getContext("2d");
+
+function resize(){ canvas.width=window.innerWidth; canvas.height=window.innerHeight; }
+resize(); window.addEventListener("resize",resize);
+
+let particles=[];
+class Particle{
+  constructor(){
+    this.x=Math.random()*canvas.width;
+    this.y=canvas.height;
+    this.size=Math.random()*5+2;
+    this.speedY=Math.random()*-2-1;
+    this.speedX=(Math.random()-0.5)*1.5;
+    this.life=80+Math.random()*20;
+  }
+  update(){ this.x+=this.speedX; this.y+=this.speedY; this.life--; }
+  draw(){
+    ctx.fillStyle=`rgba(180,0,255,${this.life/100})`;
+    ctx.beginPath(); ctx.arc(this.x,this.y,this.size,0,Math.PI*2); ctx.fill();
+  }
+}
+function animate(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  if(particles.length<120) particles.push(new Particle());
+  particles.forEach((p,i)=>{ p.update(); p.draw(); if(p.life<=0) particles.splice(i,1); });
+  requestAnimationFrame(animate);
+}
+animate();
+
+function round100(n){ return Math.round(n/100)*100; }
+
+function calculate(){
+  let total=+document.getElementById("total").value||0;
+  let car=+document.getElementById("car").value||0;
+  let kc=+document.getElementById("keroseneCount").value||0;
+  let cc=+document.getElementById("cleanCount").value||0;
+  let people=+document.getElementById("people").value||0;
+
+  let kerosene=kc*300;
+  let clean=cc*60;
+
+  let remain=total-car-kerosene-clean;
+
+  let fee=remain*0.1;
+  let per=people>0?(remain-fee)/people:0;
+
+  if(per<500){ fee=0; per=people>0?remain/people:0; }
+
+  let final=round100(per);
+  let diff=(remain-fee)-final*(people||1);
+  fee+=diff;
+
+  document.getElementById("output").innerHTML=`
+    🚗 車油：${car} 元<br>
+    🔥 煤油：${kerosene} 元<br>
+    🧴 去漬油：${clean} 元<br><br>
+    💰 團費：${Math.round(fee)} 元<br>
+    👤 每人：${final} 元
+  `;
+}
+
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('service-worker.js');
+}
+</script>
+
+</body>
+</html>
